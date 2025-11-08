@@ -5,7 +5,7 @@ torchrun --nproc_per_node=4 insv2v_parallel_json.py \
   --test_json /scratch3/yan204/yxp/VideoX_Fun/data/test_json/4tasks_rem_add_swap_local-style_test.json \
   --output_dir ./results/insv2v_on_our_bench_test \
   --ckpt_path ./insv2v.pth \
-  --config_path /home/xianyang/Data/code/instruct-video-to-video/configs/instruct_v2v.yaml \
+  --config_path configs/instruct_v2v_inference.yaml \
   --seed 0 \
   --num_frames 33 \
   --text_cfg 7.5 \
