@@ -2,6 +2,7 @@
 Use pretrained instruct pix2pix model but add additional channels for reference modification
 '''
 
+import warnings
 import torch
 from .diffusion import DDIMLDMTextTraining
 from einops import rearrange
@@ -25,7 +26,7 @@ class InstructP2PVideoTrainer(DDIMLDMTextTraining):
         self.img_cfg = img_cfg
 
         self.unet.enable_xformers_memory_efficient_attention()
-        self.unet.enable_gradient_checkpointing()
+        self._maybe_enable_gradient_checkpointing()
 
     def encode_text(self, text):
         with torch.cuda.amp.autocast(dtype=torch.float16):
@@ -36,6 +37,33 @@ class InstructP2PVideoTrainer(DDIMLDMTextTraining):
         with torch.cuda.amp.autocast(dtype=torch.float16):
             latent = super().encode_image_to_latent(image)
         return latent
+
+    def _maybe_enable_gradient_checkpointing(self):
+        if not hasattr(self.unet, "enable_gradient_checkpointing"):
+            return
+        try:
+            self.unet.enable_gradient_checkpointing()
+            return
+        except TypeError:
+            pass
+
+        fallback_methods = [
+            lambda: self.unet._set_gradient_checkpointing(True),
+            lambda: self.unet._set_gradient_checkpointing(self.unet, True),
+        ]
+        for method in fallback_methods:
+            try:
+                method()
+                return
+            except TypeError:
+                continue
+            except AttributeError:
+                continue
+
+        warnings.warn(
+            "Failed to enable gradient checkpointing for UNet; continuing without it.",
+            RuntimeWarning,
+        )
 
     @torch.cuda.amp.autocast(dtype=torch.float16)
     @torch.no_grad()
